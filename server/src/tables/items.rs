@@ -100,6 +100,14 @@ pub enum ItemMetadata {
 
     /// How much energy this item consumes per second or usage.
     EnergyConsumption(f32),
+
+    /// Shield regeneration per second provided by this module. Summed across
+    /// all equipped shield modules and added to the base ship-type rate.
+    ShieldRegenPerSecond(f32),
+    /// Energy regeneration per second provided by this module. Summed across
+    /// all equipped special modules and added to the base ship-type rate.
+    EnergyRegenPerSecond(f32),
+
     /// Some other special effect
     SpecialEffect(String),
 
