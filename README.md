@@ -18,7 +18,7 @@ The core loop is **find → extract → haul → contribute → watch it grow.**
 
 The climactic beat is collaborative: *my pile got bigger, other people's piles got bigger, and together we made a thing.*
 
-> **The project has shifted scope.** Earlier versions targeted a combat-and-exploration MMO. That vision is shelved. The MVP is now a cozy co-op builder with zero combat. See [`docs/Solarance_Beginnings_MVP_Design_Doc.md`](./docs/Solarance_Beginnings_MVP_Design_Doc.md) for the full design rationale and what "done" looks like.
+> **The project has shifted scope.** Earlier versions targeted a combat-and-exploration MMO. That vision is shelved. The MVP is now a cozy co-op builder with zero combat. See [`agents/milestones/proposed-roadmap.md`](./agents/milestones/proposed-roadmap.md) for the original milestone plan and what's been completed.
 
 ---
 
@@ -36,7 +36,7 @@ The climactic beat is collaborative: *my pile got bigger, other people's piles g
 1. **Clone and configure:**
 
    ```bash
-   git clone https://github.com/GalaxyCr8r/solarance-beginnings.git
+   git clone https://github.com/RESTful-Otaku/solarance-beginnings.git
    cd solarance-beginnings
    cp client/.env.template client/.env
    ```
@@ -71,17 +71,26 @@ The climactic beat is collaborative: *my pile got bigger, other people's piles g
 
 ## Current State
 
-The movement and physics system is in place. Factions, basic station infrastructure, and the economy groundwork exist from earlier milestones but predate the scope change — some of that code will be simplified as the MVP takes shape.
+The core loop is fully implemented: fly around sectors, mine asteroids, haul ore to stations, contribute to construction. Factions, stations, economy, jump gates, persistence, and multi-player all work.
 
-**Next:** a two-player shared-building spike. Two ships, one partially-built station, real-time contribution updates for both players. No mining, no combat, no persistence yet. Just the core emotional beat, stripped bare.
+**Previous milestones completed (see `agents/milestones/proposed-roadmap.md`):**
+- M0: Foundational (persistence, players, ships)
+- M1: Motion (movement controllers, sector physics)
+- M2: Extraction (mining, cargo, jettison)
+- M3: Construction (station modules, contributions, progress tracking)
+- M4: Economy & Services (trading, refueling, repairs, selling)
 
-For the full picture of what's planned, what's cut, and why: [`docs/Solarance_Beginnings_MVP_Design_Doc.md`](./docs/Solarance_Beginnings_MVP_Design_Doc.md).
+**Known limitations (work in progress):**
+- Combat system exists but is gated — MVP is zero-combat cozy builder
+- Shield/energy regen from modules is a stub (flat rate defaults apply)
+- Version check against server identity is deferred (blocked by private table)
+- Star system transitions use direct teleport instead of animated slide
 
 ---
 
 ## Contributing
 
-Issues and milestones are tracked on [GitHub](https://github.com/GalaxyCr8r/solarance-beginnings/milestones). Most issues currently lack descriptions — comment on one you'd like fleshed out, or reach out on the SpacetimeDB Discord.
+Issues and milestones are tracked on [GitHub](https://github.com/RESTful-Otaku/solarance-beginnings/milestones).
 
 ## License
 
