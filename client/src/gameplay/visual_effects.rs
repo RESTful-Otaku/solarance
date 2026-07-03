@@ -145,8 +145,11 @@ fn render_missile_fire_effect(effect: &FiringEffect, progress: f32) {
     let direction_x = effect.target_pos.x - effect.source_pos.x;
     let direction_y = effect.target_pos.y - effect.source_pos.y;
     let length = (direction_x * direction_x + direction_y * direction_y).sqrt();
-    let normalized_x = direction_x / length;
-    let normalized_y = direction_y / length;
+    let (normalized_x, normalized_y) = if length > 0.0 {
+        (direction_x / length, direction_y / length)
+    } else {
+        (0.0, -1.0)
+    };
     let trail_start = bindings::Vec2 {
         x: missile_pos.x - normalized_x * trail_length,
         y: missile_pos.y - normalized_y * trail_length,

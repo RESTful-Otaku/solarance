@@ -336,7 +336,7 @@ fn equipment_contents(
         EquipmentSlotType::Engine => ship_type.num_engine_slots,
         EquipmentSlotType::MiningLaser => ship_type.num_mining_laser_slots,
         EquipmentSlotType::Special => ship_type.num_special_slots,
-        EquipmentSlotType::CargoExpansion => todo!(),
+        EquipmentSlotType::CargoExpansion => 0,
     };
     let mut slots = 0;
 

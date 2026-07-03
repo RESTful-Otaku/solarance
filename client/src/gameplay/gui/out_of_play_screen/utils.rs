@@ -122,8 +122,9 @@ pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, 
                 println!("Undock clicked for ship ID: {}", ship.id);
                 state.selected_ship_id = None;
                 state.currently_selected_module = None;
-                let _ = ctx.reducers().undock_ship(ship.clone());
-                // TODO Add a system message to alert the player if it failed.
+                if let Err(e) = ctx.reducers().undock_ship(ship.clone()) {
+                    macroquad::prelude::warn!("undock_ship failed: {}", e);
+                }
             }
             if select_enabled && ui.button("Select").clicked() {
                 println!("Select clicked for ship ID: {}", ship.id);

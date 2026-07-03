@@ -177,7 +177,9 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         egui_macroquad::draw();
         next_frame().await;
 
-        let _ = player::control_player_ship(&ctx, &mut game_state); // TODO Alert player of error
+        if let Err(e) = player::control_player_ship(&ctx, &mut game_state) {
+            macroquad::prelude::warn!("control_player_ship failed: {}", e);
+        }
 
         if !game_state.chat_window.has_focus && player_ship.is_some() {
             if is_key_pressed(KeyCode::E) {

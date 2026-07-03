@@ -406,7 +406,8 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
                 sleep(Duration::from_secs(1));
             }
 
-            // TODO - if the version of this binary and the version in GlobalConfig table is different, ask the user if they want to continue.
+            // TODO - version check: requires making global_config public for client subscription.
+            // Currently deferred because global_config is private (contains server_identity).
         } else if resources_loading.is_none() {
             // Only after the connection is alive do we actually load the resources.
             resources_loading = Some(start_coroutine(async move {

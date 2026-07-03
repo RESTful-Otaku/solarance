@@ -441,8 +441,8 @@ fn buy_and_sell_inventory_item(
                 utils::module_can_sell_to_player(ctx, module, inventory.resource_item_id);
             let space_available = {
                 if let Some(status) = ctx.db().ship_status().id().find(&ship.id) {
-                    (status.max_cargo_capacity - status.used_cargo_capacity)
-                        / item_def.volume_per_unit
+                    let free = status.max_cargo_capacity - status.used_cargo_capacity;
+                    if item_def.volume_per_unit > 0 { free / item_def.volume_per_unit } else { 0 }
                 } else {
                     0
                 }

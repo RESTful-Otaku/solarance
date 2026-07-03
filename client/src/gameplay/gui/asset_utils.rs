@@ -76,8 +76,9 @@ pub fn display_ship_on_tree<T: ShipTreeHandler>(
             if ui.button("Undock").clicked() {
                 println!("Undock clicked for ship ID: {}", ship.id);
                 handler.deselect_ship();
-                let _ = ctx.reducers.undock_ship(ship.clone());
-                // TODO Add a system message to alert the player if it failed.
+                if let Err(e) = ctx.reducers.undock_ship(ship.clone()) {
+                    macroquad::prelude::warn!("undock_ship failed: {}", e);
+                }
             }
 
             if !is_selected && ui.button("Select").clicked() {

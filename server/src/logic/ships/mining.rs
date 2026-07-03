@@ -192,7 +192,7 @@ pub fn ship_mining_timer_reducer(
                 .set_current_resources(asteroid_object.get_current_resources() - (diff as u16));
         }
 
-        let _ = dsl.update_asteroid_by_id(asteroid_object)?; // TODO handle this properly
+        dsl.update_asteroid_by_id(asteroid_object)?;
         create_timer_to_add_cargo_to_ship(
             &dsl,
             ship_object.get_id(),
@@ -237,7 +237,13 @@ pub fn try_mining_asteroid(
     let player_id = PlayerId::new(ctx.sender());
     let (ship_object, ship_sobj) = get_player_ship_and_sobj(&dsl, &player_id)?;
 
-    // TODO: Check if the player ship has a mining laser installed.
+    // Verify the player's ship has a mining laser equipped.
+    let has_mining_laser = dsl
+        .get_ship_equipment_slots_by_ship_id(ship_object.get_id())
+        .any(|slot| slot.slot_type == EquipmentSlotType::MiningLaser);
+    if !has_mining_laser {
+        return Err("Ship has no mining laser installed — visit a station to equip one.".to_string());
+    }
 
     let asteroid_sobj = dsl.get_stellar_object_by_id(asteroid_sobj_id)?;
 
