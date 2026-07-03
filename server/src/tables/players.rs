@@ -60,8 +60,9 @@ pub fn init<T: spacetimedsl::WriteContext>(_dsl: &DSL<T>) -> Result<(), String> 
 pub fn get_username<T: spacetimedsl::WriteContext>(dsl: &DSL<T>, id: Identity) -> String {
     if let Some(player) = dsl.get_player_by_id(&PlayerId::new(id)).ok() {
         player.username
+    } else if id == Identity::default() {
+        "Server".to_string()
     } else {
-        // TODO: Check if sender is server
         id.to_abbreviated_hex().to_string()
     }
 }

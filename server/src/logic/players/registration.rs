@@ -25,8 +25,6 @@ pub fn register_playername(
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
 
-    // TODO: Check if the identity already has a player!!!!
-
     if dsl.get_player_by_id(PlayerId::new(identity)).is_ok() {
         log::error!("Player Already Registered");
         return Err("Player Already Registered.".to_string());

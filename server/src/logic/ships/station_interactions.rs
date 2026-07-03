@@ -11,6 +11,7 @@ use crate::{
         },
     },
     tables::{
+        factions::{are_factions_hostile, get_faction_reputation},
         jumpgates::*,
         players::{get_player_ship_and_sobj, PlayerId},
         sectors::GetSectorRowOptionById,
@@ -49,9 +50,19 @@ pub fn try_to_dock_to_station(ctx: &ReducerContext, station: &Station) -> Result
         }
     }
 
-    // TODO: Check if same faction
-
-    // TODO: If not, check faction standing
+    let player_faction = ship_object.get_faction_id();
+    let station_faction = station.get_owner_faction_id();
+    if &player_faction != &station_faction {
+        if are_factions_hostile(&dsl, &player_faction, &station_faction) {
+            let msg = format!(
+                "Cannot dock at '{}': Hostile faction standing (reputation: {}).",
+                station.get_name(),
+                get_faction_reputation(&dsl, &player_faction, &station_faction)
+            );
+            let _ = send_direct_server_warning(&dsl, &PlayerId::new(ctx.sender()), msg.clone());
+            return Err(msg);
+        }
+    }
 
     info!("Trying to dock to station!");
     dock_to_station(&dsl, &ship_object, &ship_sobj, station)?;

@@ -1,6 +1,9 @@
 use crate::{
     logic::ships::cargo::{attempt_to_load_cargo_into_ship, remove_cargo_from_ship},
-    tables::{items::*, messages::*, players::*, ships::*, stations::*},
+    tables::{
+        factions::{are_factions_hostile, get_faction_reputation},
+        items::*, messages::*, players::*, ships::*, stations::*,
+    },
     utility::is_server_or_ship_owner,
     *,
 };
@@ -45,10 +48,19 @@ pub fn buy_item_from_station_module(
         return Err(error_message);
     }
 
-    // Get Trading Port Module and it's inventory item that matches the item_id
-    //let trading_port_module = dsl.get_trading_port_module_by_id(&station_module_id)?;
-
-    // TODO: Check faction standing.
+    let station = dsl.get_station_by_id(station_module.get_station_id())?;
+    let player_faction = ship.get_faction_id();
+    let station_faction = station.get_owner_faction_id();
+    if &player_faction != &station_faction {
+        if are_factions_hostile(&dsl, &player_faction, &station_faction) {
+            let msg = format!(
+                "Cannot buy from station module: Hostile faction standing (reputation: {}).",
+                get_faction_reputation(&dsl, &player_faction, &station_faction)
+            );
+            let _ = send_direct_server_warning(&dsl, &ship.get_player_id(), msg.clone());
+            return Err(msg);
+        }
+    }
 
     let mut item_listing = dsl
         .get_station_module_inventory_items_by_module_id(&station_module_id)
@@ -221,10 +233,19 @@ pub fn sell_item_to_station_module(
         return Err(error_message);
     }
 
-    // Get Trading Port Module and it's inventory item that matches the item_id
-    ////let trading_port_module = dsl.get_trading_port_module_by_id(&station_module_id)?;
-
-    // TODO: Check faction standing.
+    let station = dsl.get_station_by_id(station_module.get_station_id())?;
+    let player_faction = ship.get_faction_id();
+    let station_faction = station.get_owner_faction_id();
+    if &player_faction != &station_faction {
+        if are_factions_hostile(&dsl, &player_faction, &station_faction) {
+            let msg = format!(
+                "Cannot sell to station module: Hostile faction standing (reputation: {}).",
+                get_faction_reputation(&dsl, &player_faction, &station_faction)
+            );
+            let _ = send_direct_server_warning(&dsl, &ship.get_player_id(), msg.clone());
+            return Err(msg);
+        }
+    }
 
     let mut item_listing = dsl
         .get_station_module_inventory_items_by_module_id(&station_module_id)
