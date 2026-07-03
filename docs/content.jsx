@@ -19,7 +19,7 @@ function HomePage() {
 
         <div className="hero-copy">
           <div className="kicker accent-bloom">▸ Pre-Alpha · Public Devlog · Pilot enrollment closed</div>
-          <img src="assets/solarance-logo.png" alt="Karl Nyborg's Solarance: Beginnings" className="hero-logo" />
+          <img src="assets/solarance-logo.png" alt="J Harrison aka Restful-Otaku's Solarance: Beginnings" className="hero-logo" />
           <p className="pitch">
             A cozy, persistent, co-op space sandbox.<br/>
             For pilots who loved EVE's economy but quit after the gank.<br/>

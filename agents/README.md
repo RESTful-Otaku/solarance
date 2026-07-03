@@ -10,7 +10,7 @@ Contribute to something bigger than yourself in the time you have. Your progress
 
 ---
 
-## A message from Karl Nyborg
+## A message from J Harrison aka Restful-Otaku
 
 This is a game I would want to play right now - I understand it's not going to be for everyone and that is fine by me. I've loved playing X2/X3/X4, Freelancer, EV: Nova, Elite: Dangerous, No Man Sky, Star Citizen... but I've also enjoyed more casual, idle games too. This game will be a fusion of both, but primarily focusing on tradionally "care-bear" type activities from EVE Online.
 

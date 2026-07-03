@@ -20,8 +20,6 @@ pub fn create_jumpgate_internal<T: spacetimedsl::WriteContext>(
     t_x: f32,
     t_y: f32,
 ) -> Result<(), String> {
-    try_server_only(dsl)?;
-
     let current_sector_id = SectorId::new(sector_id);
 
     let sobj = create_sobj(dsl, StellarObjectKinds::JumpGate, &current_sector_id)?;
@@ -98,6 +96,7 @@ pub fn create_jumpgate_in_sector(
     t_y: f32,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
+    try_server_only(&dsl)?;
     create_jumpgate_internal(&dsl, sector_id, x, y, target_sector_id, t_x, t_y)
 }
 

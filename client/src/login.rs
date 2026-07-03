@@ -74,7 +74,7 @@ pub async fn confirm_eula_screen() -> bool {
                       });
                       ui.separator();
                       ui.label(
-                          "Hello, I'm Karl Nyborg - and this is my exhuastive test of what SpacetimeDB can currently do."
+                          "Hello, I'm J Harrison aka Restful-Otaku - and this is a project exploring what SpacetimeDB can do."
                       );
                       ui.label(
                           "Solarance is a 2D top down game idea I've had for years now. Heavily inspired by Escape Velocity: Nova, X2/X3, Freelancer, and numerous other entries in the space adventure/4x genre. This is a test project to explore Rust, Macroquad, and SpacetimeDB to finally make the space MMO I've always wanted to make. You can help either by contributing code - or just by giving feedback after playing this test client."
