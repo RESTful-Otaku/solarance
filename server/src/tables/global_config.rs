@@ -26,6 +26,10 @@ pub struct GlobalConfig {
     pub cargo_crate_brake_rate_variance: f32,
     pub cargo_crate_max_turn_rate: f32,
 
+    /// When false (MVP default), the combat system (weapons, missiles, damage)
+    /// is completely disabled. No reducer will process combat actions.
+    pub combat_enabled: bool,
+
     created_at: Timestamp,
     modified_at: Timestamp,
 }
@@ -33,6 +37,12 @@ pub struct GlobalConfig {
 ///////////////////////////////////////////////////////////
 // Utility
 ///////////////////////////////////////////////////////////
+
+pub fn is_combat_enabled<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> bool {
+    dsl.get_global_config_by_id(GlobalConfigId::new(0))
+        .map(|config| *config.get_combat_enabled())
+        .unwrap_or(false)
+}
 
 pub fn global_config_any_active_players<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> bool {
     match dsl.get_global_config_by_id(GlobalConfigId::new(0)) {

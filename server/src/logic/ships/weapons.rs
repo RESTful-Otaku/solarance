@@ -6,6 +6,7 @@ use spacetimedsl::*;
 use crate::{
     logic::combat::actions::*,
     tables::{
+        global_config::is_combat_enabled,
         players::*, ships::*,
         stellarobjects::*,
     },
@@ -14,6 +15,10 @@ use crate::{
 #[reducer]
 pub fn fire_weapons(ctx: &ReducerContext, target_sobj_id: u64) -> Result<(), String> {
     let dsl = dsl(ctx);
+
+    if !is_combat_enabled(&dsl) {
+        return Err("Combat is disabled in the current game mode.".to_string());
+    }
 
     let ship = dsl
         .get_ships_by_player_id(PlayerId::new(ctx.sender()))

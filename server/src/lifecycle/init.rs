@@ -29,6 +29,7 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
             cargo_crate_brake_rate: 1.5,
             cargo_crate_brake_rate_variance: 0.5,
             cargo_crate_max_turn_rate: std::f32::consts::PI,
+            combat_enabled: false,
         })?;
         info!("GlobalConfig created with server identity: {}", server_identity);
     } else {
