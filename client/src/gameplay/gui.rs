@@ -14,6 +14,7 @@ pub mod status_widget;
 pub mod welcome_back_widget;
 
 // Factions
+#[allow(dead_code)]
 pub const FACTION_FACTIONLESS: u32 = 0;
 pub const FACTION_LRAK_COMBINE: u32 = 1;
 pub const FACTION_INDEPENDENT_WORLDS_ALLIANCE: u32 = 2;

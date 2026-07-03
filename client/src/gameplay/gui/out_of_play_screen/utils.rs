@@ -94,6 +94,7 @@ pub fn module_can_sell_to_player(ctx: &DbConnection, module: &StationModule, ite
     false
 }
 
+#[allow(dead_code)]
 pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship: &Ship) {
     let ship_type = ctx.db().ship_type_definition().id().find(&ship.shiptype_id);
 

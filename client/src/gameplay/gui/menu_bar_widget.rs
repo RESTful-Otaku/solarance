@@ -3,13 +3,14 @@ use egui::{Align2, Color32, Context, FontId, Frame, RichText, Shadow, Ui};
 
 use crate::{gameplay::state::GameState, server::bindings::*};
 
-//#[derive(Default)]
+#[allow(dead_code)]
 pub struct State {
     // current_tab: CurrentTab, // = CurrentTab::Ship
     // current_equipment_tab: EquipmentSlotType,
 }
 
 impl State {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         State {
             // current_tab: CurrentTab::Ship,

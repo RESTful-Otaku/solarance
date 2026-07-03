@@ -1,4 +1,4 @@
-use spacetimedb::{table, Timestamp};
+use spacetimedb::{table, Identity, Timestamp};
 use spacetimedsl::*;
 
 #[dsl(plural_name = global_configurations, method(update = true))]
@@ -11,6 +11,9 @@ pub struct GlobalConfig {
     pub active_players: u32,
     pub old_gods_defeated: u8,
     pub version: String,
+    /// Stored during `init` — the module-owner identity that admin
+    /// reducers check against via `try_server_only`.
+    pub server_identity: Identity,
 
     // ── Cargo-crate jettison & lifecycle tunables ─────────────────────────
     // Read by Phase 3 snapshot helpers (re-stamp `max_turn_rate`) and by the

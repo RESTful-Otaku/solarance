@@ -1,28 +1,38 @@
 use log::warn;
+use spacetimedb::Identity;
 use spacetimedsl::*;
 
-use crate::{ships::*, stellarobjects::*};
+use crate::{
+    ships::*,
+    stellarobjects::*,
+    tables::global_config::*,
+};
 
 const IS_SERVER_ERROR: &str = "This reducer can only be called by SpacetimeDB!";
 const IS_SERVER_OR_OWNER_ERROR: &str =
     "This reducer can only be called by SpacetimeDB or the owner!";
 
-// For helper reducers that utilize several different tables
-//
-
-/// Checks if the context sender is the server. ONLY for spacetimedb reducer functions!
+/// Checks if the context sender is the module owner (stored in GlobalConfig
+/// during `init`). Scheduled/timer reducers with the all-zeros identity are
+/// also allowed — they are the module itself.
 pub fn try_server_only<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
-    let sender = dsl.ctx().sender()?.to_string();
-    if sender.contains("c2009ba0980240569a0be51")
-        || sender.contains("c20029638c4f24cb63494c49b28b533e")
-        || sender.contains("c2001b668b8b961618fb1271998d5be0789eff815e5e82b69cd146ef0370be66")
-    {
+    let sender = dsl.ctx().sender()?;
+
+    // Scheduled reducers always fire with the zero identity.
+    if sender == Identity::default() {
         return Ok(());
     }
 
+    // Look up the stored owner identity from the GlobalConfig singleton.
+    if let Ok(config) = dsl.get_global_config_by_id(GlobalConfigId::new(0)) {
+        if sender == config.server_identity {
+            return Ok(());
+        }
+    }
+
     warn!(
-        "Deined server request from: {}",
-        dsl.ctx().sender()?.to_string()
+        "Denied server-only reducer request from: {}",
+        sender.to_string()
     );
 
     Err(IS_SERVER_ERROR.to_string())
@@ -50,9 +60,19 @@ pub fn is_server_or_sobj_owner<T: spacetimedsl::WriteContext>(
 
 /// Checks if the context sender is the server or the owner of the given Ship.
 pub fn is_server_or_ship_owner<T: spacetimedsl::WriteContext>(
-    _dsl: &DSL<T>,
-    _ship_id: Option<ShipId>,
+    dsl: &DSL<T>,
+    ship_id: Option<ShipId>,
 ) -> Result<(), String> {
-    // For now, always allow - this needs proper server identity check
-    return Ok(());
+    // Server is always allowed.
+    try_server_only(dsl).or_else(|_| {
+        let sid = ship_id.ok_or_else(|| "Missing ship ID".to_string())?;
+        let ship = dsl.get_ship_by_id(&sid).map_err(|_| "Ship not found".to_string())?;
+        let sender = dsl.ctx().sender()?;
+        if ship.get_player_id().value() == sender {
+            Ok(())
+        } else {
+            warn!("Denied server/ship-owner request from: {}", sender.to_string());
+            Err("This reducer can only be called by SpacetimeDB or the ship owner!".to_string())
+        }
+    })
 }

@@ -144,6 +144,7 @@ async fn main() -> Result<(), macroquad::Error> {
 ///
 /// Used for locating resources and configuration files relative to the executable location,
 /// particularly important for macOS bundle structure
+#[allow(dead_code)]
 fn get_exe_path() -> PathBuf {
     match env::current_exe() {
         Ok(mut p) => {
