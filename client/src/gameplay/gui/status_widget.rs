@@ -4,12 +4,6 @@ use spacetimedb_sdk::{DbContext, Table};
 
 use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
-#[allow(dead_code)]
-#[derive(Default)]
-pub struct WindowState {
-    //pub hidden: bool
-}
-
 pub fn window(
     egui_ctx: &Context,
     ctx: &DbConnection,

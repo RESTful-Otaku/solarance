@@ -3,22 +3,6 @@ use egui::{Align2, Color32, Context, FontId, Frame, RichText, Shadow, Ui};
 
 use crate::{gameplay::state::GameState, server::bindings::*};
 
-#[allow(dead_code)]
-pub struct State {
-    // current_tab: CurrentTab, // = CurrentTab::Ship
-    // current_equipment_tab: EquipmentSlotType,
-}
-
-impl State {
-    #[allow(dead_code)]
-    pub fn new() -> Self {
-        State {
-            // current_tab: CurrentTab::Ship,
-            // current_equipment_tab: EquipmentSlotType::Weapon
-        }
-    }
-}
-
 pub fn draw(egui_ctx: &Context, _ctx: &DbConnection, game_state: &mut GameState) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window
         ::new("Menu Bar")

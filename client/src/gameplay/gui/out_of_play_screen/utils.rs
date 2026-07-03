@@ -1,4 +1,4 @@
-use egui::{Align, Layout};
+
 
 use super::*;
 
@@ -92,49 +92,6 @@ pub fn module_can_sell_to_player(ctx: &DbConnection, module: &StationModule, ite
     }
 
     false
-}
-
-#[allow(dead_code)]
-pub fn display_ship_on_tree(ctx: &DbConnection, state: &mut State, ui: &mut Ui, ship: &Ship) {
-    let ship_type = ctx.db().ship_type_definition().id().find(&ship.shiptype_id);
-
-    let mut select_enabled = true;
-    if state.selected_ship_id == Some(ship.id) {
-        select_enabled = false;
-    }
-
-    ui.horizontal(|ui| {
-        // You can make ships collapsible too, or just list them
-        ui.label(format!(
-            "    - Ship: {} (ID: {})",
-            if ship_type.is_some() {
-                ship_type.unwrap().name
-            } else {
-                "Unknown Ship Type".to_string()
-            },
-            ship.id
-        ));
-
-        // Buttons on the right
-        ui.with_layout(Layout::right_to_left(Align::TOP), |ui| {
-            // Add buttons in reverse order of appearance (rightmost first)
-            if ui.button("Undock").clicked() {
-                println!("Undock clicked for ship ID: {}", ship.id);
-                state.selected_ship_id = None;
-                state.currently_selected_module = None;
-                if let Err(e) = ctx.reducers().undock_ship(ship.clone()) {
-                    macroquad::prelude::warn!("undock_ship failed: {}", e);
-                }
-            }
-            if select_enabled && ui.button("Select").clicked() {
-                println!("Select clicked for ship ID: {}", ship.id);
-                // Handle selection, e.g., update some state
-                state.selected_ship_id = Some(ship.id);
-            } else if !select_enabled {
-                ui.add_enabled(select_enabled, egui::Button::new("Select"));
-            }
-        });
-    });
 }
 
 pub fn collect_ships_per_sector(ctx: &DbConnection) -> HashMap<u64, Vec<Ship>> {
