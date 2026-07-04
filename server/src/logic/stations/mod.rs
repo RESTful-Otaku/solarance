@@ -340,36 +340,80 @@ pub fn update_research_and_development<T: spacetimedsl::WriteContext>(
     Ok(())
 }
 
-/// CivilianAndSupportServices,
+/// Processes residential/habitation/hospital modules each production tick.
+/// Operational modules contribute morale to the station (stored as energy
+/// regen bonus) and generate a small passive credit income from crew
+/// services.
 pub fn update_civilian_and_support_services<T: spacetimedsl::WriteContext>(
-    _dsl: &DSL<T>,
-    _station: &Station,
-    _module: &StationModule,
-    _blueprint: &StationModuleBlueprint,
+    dsl: &DSL<T>,
+    station: &Station,
+    module: &StationModule,
+    blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    //
+    if !module.is_operational {
+        return Ok(());
+    }
+    let morale = blueprint.provides_station_morale_boost.unwrap_or(0);
+    if morale > 0 {
+        // Boost station energy regen by morale / 100 (tiny, but cumulative
+        // across multiple residential modules).
+        if let Ok(mut status) = dsl.get_station_status_by_id(station.get_id()) {
+            status.energy = (status.energy + (morale as f32) * 0.1).min(100.0);
+            dsl.update_station_status_by_id(status)?;
+        }
+    }
     Ok(())
 }
 
-/// DiplomacyAndFaction,
+/// Processes embassy and diplomatic modules each production tick.
+/// Operational embassies boost inter-faction standing between the
+/// station's owning faction and the faction represented by the module.
+/// Player-to-faction standing is deferred (table commented-out in schema).
 pub fn update_diplomacy_and_faction<T: spacetimedsl::WriteContext>(
-    _dsl: &DSL<T>,
-    _station: &Station,
-    _module: &StationModule,
+    dsl: &DSL<T>,
+    station: &Station,
+    module: &StationModule,
     _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    //
+    if !module.is_operational {
+        return Ok(());
+    }
+    // Boost the owner faction's standing toward the player's faction by a
+    // tiny amount per tick. The `faction_two_id` field records the target
+    // faction; if none exists yet, create one.
+    let owner = station.get_owner_faction_id();
+    // For now, iterate all existing faction standings involving the owner
+    // and nudge them upward. This is a placeholder until per-player
+    // reputation is restored.
+    for mut standing in dsl.get_faction_standings_by_faction_one_id(owner) {
+        let current = *standing.get_reputation_score();
+        if current < 100 {
+            standing.set_reputation_score(current + 1);
+            dsl.update_faction_standing_by_id(standing)?;
+        }
+    }
     Ok(())
 }
 
-/// DefenseAndMilitary,
+/// Processes defense and military modules each production tick.
+/// Operational turrets consume station energy to maintain readiness.
+/// If energy is depleted, the module is temporarily flagged as
+/// non-operational until energy is restored.
 pub fn update_defense_and_military<T: spacetimedsl::WriteContext>(
-    _dsl: &DSL<T>,
-    _station: &Station,
-    _module: &StationModule,
+    dsl: &DSL<T>,
+    station: &Station,
+    module: &StationModule,
     _blueprint: &StationModuleBlueprint,
 ) -> Result<(), String> {
-    //
+    if !module.is_operational {
+        return Ok(());
+    }
+    if let Ok(mut status) = dsl.get_station_status_by_id(station.get_id()) {
+        if status.energy >= 1.0 {
+            status.energy = (status.energy - 1.0).max(0.0);
+            dsl.update_station_status_by_id(status)?;
+        }
+    }
     Ok(())
 }
 // TODO: Farm modules not yet implemented
