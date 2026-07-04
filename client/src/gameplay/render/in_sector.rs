@@ -316,13 +316,26 @@ pub fn draw_station(pose: &RenderPose, station: Station, game_state: &mut GameSt
     let resources = storage::get::<Resources>();
     let position = pose.pos;
 
-    let gfx_key = match station.size {
-        StationSize::Capital => "station.capital",
-        StationSize::Large => "station.large",
-        StationSize::Medium => "station.medium",
-        StationSize::Small => "station.small",
-        StationSize::Outpost => "station.outpost",
-        StationSize::Satellite => "station.satellite",
+    let under_construction = game_state
+        .ctx
+        .db
+        .station_under_construction()
+        .id()
+        .find(&station.id)
+        .is_some();
+    let gfx_key = match (station.size, under_construction) {
+        (StationSize::Capital, false) => "station.capital",
+        (StationSize::Capital, true) => "station.capital.uc",
+        (StationSize::Large, false) => "station.large",
+        (StationSize::Large, true) => "station.large.uc",
+        (StationSize::Medium, false) => "station.medium",
+        (StationSize::Medium, true) => "station.medium.uc",
+        (StationSize::Small, false) => "station.small",
+        (StationSize::Small, true) => "station.small.uc",
+        (StationSize::Outpost, false) => "station.outpost",
+        (StationSize::Outpost, true) => "station.outpost.uc",
+        (StationSize::Satellite, false) => "station.satellite",
+        (StationSize::Satellite, true) => "station.satellite.uc",
     };
     let tex = &resources.station_textures[gfx_key];
     draw_texture(

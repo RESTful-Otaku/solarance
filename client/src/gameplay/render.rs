@@ -1,4 +1,6 @@
+use glam::Vec2;
 use macroquad::prelude::*;
+use macroquad::prelude::collections::storage;
 
 use crate::{gameplay::render::star_system::render_star_system, server::bindings::*};
 use spacetimedb_sdk::{DbContext, Table};
@@ -33,6 +35,51 @@ pub fn sector(game_state: &mut GameState) {
     // see the wrong-sector filter in the first pass. `None` while docked /
     // out-of-play, in which case we don't filter (nothing to anchor to).
     let player_sector = player_ship.as_ref().map(|s| s.sector_id);
+
+    // Draw sector-level nebula fog overlay — semi-transparent texture centered
+    // on the camera's target, large enough to cover the full visible area.
+    // Alpha is clamped to [0, 160] so even sectors with nebula=1.0 remain
+    // semi-transparent. Drawn after the star system backdrop but before any
+    // in-sector objects so the fog sits behind ships/stations.
+    if let Some(sector_id) = player_sector {
+        if let Some(sector) = db.sector().id().find(&sector_id) {
+            if sector.nebula > 0.0 {
+                let resources = storage::get::<Resources>();
+                let key = match sector_id % 8 {
+                    0 => "nebula.1",
+                    1 => "nebula.2",
+                    2 => "nebula.3",
+                    3 => "nebula.5",
+                    4 => "nebula.6",
+                    5 => "nebula.7",
+                    6 => "nebula.9",
+                    _ => "nebula.10",
+                };
+                if let Some(texture) = resources.nebula_textures.get(key) {
+                    let alpha = (160.0 * sector.nebula.min(1.0)) as u8;
+                    let color = Color::from_rgba(200, 160, 255, alpha);
+                    let visible_width = screen_width() / game_state.camera.zoom.x;
+                    let visible_height = screen_height() / game_state.camera.zoom.y;
+                    let cover = (visible_width.max(visible_height) * 3.0) / texture.width();
+                    let cx = game_state.camera.target.x;
+                    let cy = game_state.camera.target.y;
+                    draw_texture_ex(
+                        texture,
+                        cx - texture.width() * cover * 0.5,
+                        cy - texture.height() * cover * 0.5,
+                        color,
+                        DrawTextureParams {
+                            dest_size: Some(Vec2::new(
+                                texture.width() * cover,
+                                texture.height() * cover,
+                            )),
+                            ..Default::default()
+                        },
+                    );
+                }
+            }
+        }
+    }
 
     // Collect ships to draw after stations
     let mut ships_to_draw: Vec<(Ship, RenderPose, ShipTypeDefinition)> = Vec::new();
