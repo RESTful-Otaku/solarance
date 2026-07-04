@@ -111,7 +111,20 @@ pub fn create_station_with_modules<T: spacetimedsl::WriteContext>(
         last_processed_timestamp: dsl.ctx().timestamp()?,
     })?;
 
-    // Set up station status schedule (every 60 seconds) TODO Tie this to GlobalConfig
+    // Initialise station status (health, shields, energy) so the status tick has
+    // a row to work with on first fire. Size read from the created station row
+    // since `size` was consumed by `CreateStation` above.
+    let s = station.get_size();
+    let base_health = s.calculate_base_health() as f32;
+    let base_shields = s.calculate_base_shields() as f32;
+    dsl.create_station_status(CreateStationStatus {
+        id: station.get_id().into(),
+        health: base_health,
+        shields: base_shields,
+        energy: 0.0,
+    })?;
+
+    // Set up station status schedule (every 10 seconds) for shield regen
     dsl.create_station_status_schedule(CreateStationStatusSchedule {
         id: station.get_id(),
         scheduled_at: ScheduleAt::Interval(Duration::from_secs(10).into()),
