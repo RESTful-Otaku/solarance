@@ -8,8 +8,9 @@ pub fn identity_disconnected(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
     // Called everytime a client disconnects
 
-    if let Ok(_player) = dsl.get_player_by_id(PlayerId::new(ctx.sender())) {
-        // Remove unneccessary timers and etc.
+    if let Ok(mut player) = dsl.get_player_by_id(PlayerId::new(ctx.sender())) {
+        player.logged_in = false;
+        dsl.update_player_by_id(player)?;
     }
 
     if let Some(mut config) = dsl.get_all_global_configurations().next() {

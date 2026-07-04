@@ -26,6 +26,7 @@ pub fn identity_connected(ctx: &ReducerContext) -> Result<(), String> {
         }
 
         player.last_login = Some(ctx.timestamp);
+        player.logged_in = true;
         dsl.update_player_by_id(player)?;
     }
 
