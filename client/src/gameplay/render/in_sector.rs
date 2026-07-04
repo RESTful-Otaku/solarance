@@ -12,8 +12,6 @@ pub fn draw_mining_laser(game_state: &mut GameState<'_>, player_pose: &RenderPos
     if !game_state.mining_active {
         return;
     }
-    // Re-query the target fresh; `get_current_target` is the row we'd otherwise
-    // have cached and dereferenced. None ⇒ target gone, nothing to draw.
     let Some(target) = get_current_target(game_state.ctx, &mut game_state.current_target_sobj_id)
     else {
         return;
@@ -22,24 +20,49 @@ pub fn draw_mining_laser(game_state: &mut GameState<'_>, player_pose: &RenderPos
         return;
     }
     let now_micros = now_unix_micros();
-    if let Some(target_pose) = pose_for_object(game_state.ctx, &target, now_micros) {
-        draw_line(
-            target_pose.pos.x,
-            target_pose.pos.y,
-            player_pose.pos.x,
-            player_pose.pos.y,
-            6.0,
-            Color::from_rgba(128, 0, 0, ((now() * 100.0) % 255.0) as u8),
-        );
-        draw_line(
-            target_pose.pos.x,
-            target_pose.pos.y,
-            player_pose.pos.x,
-            player_pose.pos.y,
-            ((now() as f32) * 100.0) % 3.0,
-            RED,
-        );
+    let Some(target_pose) = pose_for_object(game_state.ctx, &target, now_micros) else {
+        return;
+    };
+
+    let t = now() as f32;
+    let (sx, sy) = (player_pose.pos.x, player_pose.pos.y);
+    let (ex, ey) = (target_pose.pos.x, target_pose.pos.y);
+
+    // Outer glow — wide, faint, warm orange
+    draw_line(ex, ey, sx, sy, 14.0, Color::from_rgba(200, 60, 20, 30));
+
+    // Mid layer — pulsing hot orange
+    let pulse = (t * 6.0).sin() * 0.3 + 0.7;
+    draw_line(
+        ex, ey, sx, sy, 8.0,
+        Color::from_rgba(240, 100, 30, (80.0 * pulse) as u8),
+    );
+
+    // Core — bright yellow-white, steady
+    draw_line(ex, ey, sx, sy, 2.0, Color::from_rgba(255, 240, 200, 220));
+
+    // Energy segments flowing from player toward asteroid
+    let dist = glam::Vec2::new(ex - sx, ey - sy);
+    let len = dist.length();
+    if len > 0.0 {
+        let dir = dist / len;
+        let segment_spacing = 30.0;
+        let speed = 120.0;
+        let offset = (t * speed) % segment_spacing;
+        let mut d = offset;
+        while d < len {
+            let px = sx + dir.x * d;
+            let py = sy + dir.y * d;
+            let brightness = ((d / len) * 0.5 + 0.5) * pulse;
+            draw_circle(px, py, 2.5, Color::from_rgba(255, 200, 100, (180.0 * brightness) as u8));
+            d += segment_spacing;
+        }
     }
+
+    // Hit flash on the asteroid
+    let hit_radius = 6.0 + (t * 8.0).sin() * 2.0;
+    draw_circle(ex, ey, hit_radius, Color::from_rgba(255, 120, 30, (60.0 * pulse) as u8));
+    draw_circle_lines(ex, ey, hit_radius + 4.0, 1.5, Color::from_rgba(255, 180, 80, (40.0 * pulse) as u8));
 }
 
 pub fn draw_radar(
@@ -50,13 +73,26 @@ pub fn draw_radar(
 ) {
     let radar_radius = screen_height() / 2.0 - 100.0;
     let radar_icon_size = 12.0;
+    let ring_radius = radar_radius - radar_icon_size;
     draw_circle_lines(
         player_pose.pos.x,
         player_pose.pos.y,
-        radar_radius - radar_icon_size,
+        ring_radius,
         radar_icon_size * 2.0,
         Color::from_rgba(255, 255, 255, 32),
     );
+
+    // Inner range rings at ¼, ½, and ¾ of the radar radius so the player
+    // can estimate distance at a glance without reading labels.
+    for frac in [0.25, 0.5, 0.75] {
+        draw_circle_lines(
+            player_pose.pos.x,
+            player_pose.pos.y,
+            ring_radius * frac,
+            1.0,
+            Color::from_rgba(255, 255, 255, 12),
+        );
+    }
 
     // Predicted-forward velocity for the player ship — the HUD reads
     // `velocity` (scalar speed) and `rotation` from the same snapshot used
@@ -66,18 +102,23 @@ pub fn draw_radar(
     }
 
     for (sobj_id, position, kind) in local_targets {
-        // Find out where the icon should be placed on the ring.
         let angle = (position - player_vec).to_angle();
+        let dist = player_vec.distance(position);
+
+        // Map distance to radial position: objects beyond ring_radius hug the
+        // ring; closer objects appear at a proportional fraction so the player
+        // can judge range at a glance.
+        let radial_fraction = if dist < ring_radius {
+            dist / ring_radius
+        } else {
+            1.0
+        };
+        let icon_dist = ring_radius * radial_fraction;
         let from =
-            player_vec + (glam::Vec2::from_angle(angle) * radar_radius + radar_icon_size / 2.0);
+            player_vec + (glam::Vec2::from_angle(angle) * icon_dist + radar_icon_size / 2.0);
 
         let is_targetted = game_state.current_target_sobj_id == Some(sobj_id);
         let thickness = if is_targetted { 2.0 } else { 1.0 };
-
-        let dist = player_vec.distance(position);
-        if dist < radar_radius {
-            continue;
-        }
 
         let distance_fade = if dist < 1000.0 {
             1.0
@@ -124,6 +165,25 @@ pub fn draw_radar(
             1.0,
             thickness,
             Color::from_rgba(255, 255, 255, actual_fade),
+        );
+
+        // Distance label next to the icon (clamped to ring edge for objects
+        // beyond the visible radius so the label stays near the icon).
+        let label_pos = if radial_fraction < 1.0 {
+            from
+        } else {
+            player_vec + (glam::Vec2::from_angle(angle) * ring_radius + radar_icon_size / 2.0)
+        };
+        let label = format!("{:.0}", dist);
+        draw_text_ex(
+            &label,
+            label_pos.x + radar_icon_size + 4.0,
+            label_pos.y - 4.0,
+            TextParams {
+                font_size: 12,
+                color: Color::from_rgba(255, 255, 255, (actual_fade as f32 * 0.75) as u8),
+                ..Default::default()
+            },
         );
     }
 }
@@ -264,6 +324,17 @@ pub fn draw_crate(pose: &RenderPose, cargo_crate: CargoCrate, game_state: &mut G
         .gfx_key
         .unwrap_or("crate.0".to_string())
         .as_str()];
+
+    // Soft glow underneath the crate so it's easier to spot at a distance
+    let t = now() as f32;
+    let glow_radius = (tex.width().max(tex.height()) * 0.6) + (t * 2.0).sin() * 4.0;
+    draw_circle(
+        position.x,
+        position.y,
+        glow_radius,
+        Color::from_rgba(120, 200, 255, 24),
+    );
+
     draw_texture_ex(
         tex,
         position.x - tex.width() * 0.5,
@@ -274,6 +345,20 @@ pub fn draw_crate(pose: &RenderPose, cargo_crate: CargoCrate, game_state: &mut G
             ..DrawTextureParams::default()
         },
     );
+
+    // Item name label floating above the crate
+    if let Some(def) = game_state.ctx.db.item_definition().id().find(&cargo_crate.item_id) {
+        draw_text_ex(
+            &format!("{} x{}", def.name, cargo_crate.quantity),
+            position.x,
+            position.y - tex.height() * 0.5 - 14.0,
+            TextParams {
+                font_size: 11,
+                color: Color::from_rgba(200, 230, 255, 200),
+                ..Default::default()
+            },
+        );
+    }
 
     if game_state.current_target_sobj_id == Some(cargo_crate.sobj_id) {
         let size = (tex.width() + tex.height()) * 0.5;
@@ -294,6 +379,19 @@ pub fn draw_jumpgate(pose: &RenderPose, jumpgate: JumpGate, game_state: &mut Gam
         .gfx_key
         .unwrap_or("jumpgate_north".to_string())
         .as_str()];
+
+    // Subtle energy pulse around the gate
+    let t = now() as f32;
+    let pulse = (t * 2.5).sin() * 0.3 + 0.7;
+    let gate_radius = (tex.width().max(tex.height()) * 0.4) + (t * 1.5).sin() * 6.0;
+    draw_circle_lines(
+        position.x,
+        position.y,
+        gate_radius,
+        1.5,
+        Color::from_rgba(80, 200, 255, (60.0 * pulse) as u8),
+    );
+
     draw_texture(
         tex,
         position.x - tex.width() * 0.5,

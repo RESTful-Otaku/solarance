@@ -45,5 +45,6 @@ pub fn init(ctx: &ReducerContext) -> Result<(), String> {
         }
         dsl.update_global_config_by_id(config)?;
     }
+
     Ok(())
 }

@@ -40,7 +40,9 @@ pub fn init<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
 fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
     let pc = Some(FactionId::new(FACTION_ALLIANCE_PROCYON));
 
-    // Factionless - neutral faction for players who want no faction affiliation
+    // Factionless — NPC-only in MVP (#93). No Capital station, so the
+    // client already excludes it from pickable factions; setting joinable
+    // to false hides it from the selection list entirely.
     dsl.create_faction(CreateFaction {
         id: FACTION_FACTIONLESS,
         parent_id: None,
@@ -48,7 +50,7 @@ fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         short_name: "FX".to_string(),
         description: "Independent operators who have chosen to remain neutral in galactic politics. Factionless individuals trade freely with all factions but receive no protection or special privileges from any government. They must rely on their own skills and resources to survive in the galaxy.".to_string(),
         tier: FactionTier::Galactic,
-        joinable: true,
+        joinable: false,
         capital_station_id: None,
     })?;
 
@@ -64,7 +66,7 @@ fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         capital_station_id: None,
     })?;
 
-    // Independent Worlds Alliance - disliked by Lrak and FTU, neutral to others (Galactic tier, joinable)
+    // Independent Worlds Alliance — NPC-only in MVP (#93). Future-vision.
     dsl.create_faction(CreateFaction {
         id: FACTION_INDEPENDENT_WORLDS_ALLIANCE,
         parent_id: pc.clone(),
@@ -72,11 +74,11 @@ fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         short_name: "IWA".to_string(),
         description: "A loose confederation of independent star systems that value autonomy and self-governance. The IWA formed as a defensive alliance against larger, more aggressive factions.".to_string(),
         tier: FactionTier::Galactic,
-        joinable: true,
+        joinable: false,
         capital_station_id: None,
     })?;
 
-    // Free Trade Union - disliked by everybody (Galactic tier, joinable)
+    // Free Trade Union — NPC-only in MVP (#93). Future-vision.
     dsl.create_faction(CreateFaction {
         id: FACTION_FREE_TRADE_UNION,
         parent_id: None,
@@ -84,7 +86,7 @@ fn factions<T: spacetimedsl::WriteContext>(dsl: &DSL<T>) -> Result<(), String> {
         short_name: "FTU".to_string(),
         description: "A corporate-dominated faction that prioritizes profit above all else. The FTU's ruthless business practices and exploitation of resources has earned them enemies across the galaxy.".to_string(),
         tier: FactionTier::Galactic,
-        joinable: true,
+        joinable: false,
         capital_station_id: None,
     })?;
 

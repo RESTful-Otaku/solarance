@@ -406,8 +406,10 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
                 sleep(Duration::from_secs(1));
             }
 
-            // TODO - version check: requires making global_config public for client subscription.
-            // Currently deferred because global_config is private (contains server_identity).
+            // TODO(#version-check): compare client ver against server's
+            // GlobalConfig.version once bindings are regenerated with the
+            // table marked public (server/src/tables/global_config.rs).
+            // Until then the subscription for it is a no-op.
         } else if resources_loading.is_none() {
             // Only after the connection is alive do we actually load the resources.
             resources_loading = Some(start_coroutine(async move {

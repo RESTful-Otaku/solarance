@@ -42,25 +42,119 @@ impl State {
         }
     }
 
-    /// Tab bar + dispatch. The dialog hosts a "System Map" (the current star
-    /// system) and a "Galaxy Map" (post-MVP placeholder, #160).
-    fn draw_galaxy_map(&mut self, ui: &mut egui::Ui, ctx: &DbConnection) {
-        ui.horizontal(|ui| {
-            ui.selectable_value(&mut self.current_tab, MapTab::System, "System Map");
-            ui.selectable_value(&mut self.current_tab, MapTab::Galaxy, "Galaxy Map");
-        });
-        ui.separator();
+/// Tab bar + dispatch. The dialog hosts a "System Map" (the current star
+/// system) and a "Galaxy Map" (sector overview with stations).
+fn draw_galaxy_map(&mut self, ui: &mut egui::Ui, ctx: &DbConnection) {
+    ui.horizontal(|ui| {
+        ui.selectable_value(&mut self.current_tab, MapTab::System, "System Map");
+        ui.selectable_value(&mut self.current_tab, MapTab::Galaxy, "Galaxy Map");
+    });
+    ui.separator();
 
-        match self.current_tab {
-            MapTab::System => self.draw_system_map(ui, ctx),
-            MapTab::Galaxy => {
-                ui.vertical_centered(|ui| {
-                    ui.add_space(40.0);
-                    ui.weak("Galaxy-wide star-system overview — coming after MVP (#160).");
-                });
-            }
-        }
+    match self.current_tab {
+        MapTab::System => self.draw_system_map(ui, ctx),
+        MapTab::Galaxy => self.draw_galaxy_sectors(ui, ctx),
     }
+}
+
+/// Lists all sectors with their faction affiliation, station status, and
+/// jumpgate connections — a galaxy-at-a-glance reference for the player.
+fn draw_galaxy_sectors(&mut self, ui: &mut egui::Ui, ctx: &DbConnection) {
+    use egui::*;
+
+    ui.heading("Sector Overview");
+    ui.small("All known sectors and their stations. Sectors with no station are unsettled.");
+    ui.separator();
+
+    let sectors: Vec<Sector> = ctx.db().sector().iter().collect();
+    let stations: Vec<Station> = ctx.db().station().iter().collect();
+    let gates: Vec<JumpGate> = ctx.db().jump_gate().iter().collect();
+
+    if sectors.is_empty() {
+        ui.weak("No sectors discovered yet.");
+        return;
+    }
+
+    // Build a map of sector_id -> list of connected sector names for the
+    // jumpgate network display.
+    use std::collections::HashMap;
+    let mut gate_map: HashMap<u64, Vec<String>> = HashMap::new();
+    for gate in &gates {
+        let target_name = ctx
+            .db()
+            .sector()
+            .id()
+            .find(&gate.target_sector_id)
+            .map(|s| s.name.clone())
+            .unwrap_or_else(|| format!("#{}", gate.target_sector_id));
+        gate_map
+            .entry(gate.current_sector_id)
+            .or_default()
+            .push(target_name);
+    }
+
+    ScrollArea::vertical()
+        .max_height(ui.available_height() - 20.0)
+        .show(ui, |ui| {
+            for sector in &sectors {
+                let station = stations.iter().find(|s| s.sector_id == sector.id);
+                let sector_gates = gate_map.get(&sector.id).cloned().unwrap_or_default();
+
+                let (faction_color, faction_name, station_label) = if let Some(st) = station {
+                    let color = crate::gameplay::gui::faction_color(st.owner_faction_id);
+                    let fname = ctx
+                        .db()
+                        .faction()
+                        .id()
+                        .find(&st.owner_faction_id)
+                        .map(|f| f.short_name.clone())
+                        .unwrap_or_else(|| format!("#{}", st.owner_faction_id));
+                    let under_con = ctx
+                        .db()
+                        .station_under_construction()
+                        .id()
+                        .find(&st.id)
+                        .map(|uc| {
+                            if !uc.is_operational {
+                                format!(" ({}%)", uc.construction_progress_percentage as u32)
+                            } else {
+                                String::new()
+                            }
+                        })
+                        .unwrap_or_default();
+                    let sname = format!("{}{}", st.name, under_con);
+                    (color, fname, sname)
+                } else {
+                    (Color32::DARK_GRAY, "Unclaimed".into(), "None".into())
+                };
+
+                let gate_str = if sector_gates.is_empty() {
+                    "None".into()
+                } else {
+                    sector_gates.join(", ")
+                };
+
+                CollapsingHeader::new(format!(
+                    "{} — {} — Station: {}",
+                    sector.name, faction_name, station_label
+                ))
+                .id_salt(sector.id)
+                .show(ui, |ui| {
+                    ui.horizontal(|ui| {
+                        ui.label("Faction:");
+                        ui.colored_label(faction_color, &faction_name);
+                    });
+                    ui.label(format!("Coordinates: ({:.0}, {:.0})", sector.x, sector.y));
+                    ui.label(format!("Connected to: {}", gate_str));
+                    if let Some(st) = station {
+                        let size_str = format!("{:?}", st.size);
+                        ui.label(format!("Station size: {}", size_str));
+                    }
+                });
+                ui.separator();
+            }
+        });
+}
 
     /// The current star system: sector dots, jumpgate edges, faded orbital
     /// backdrop, with pan + auto-fit.
