@@ -20,7 +20,7 @@ pub fn connect_to_spacetime(jwt_token: Option<String>) -> Option<DbConnection> {
     // Connect to the database
     let host = {
         let result = env::var("DATABASE_HOST").unwrap_or(LOCAL_HOST.to_string());
-        if result.is_empty() {
+        if result.is_empty() || !result.contains("://") {
             LOCAL_HOST.to_string()
         } else {
             result
