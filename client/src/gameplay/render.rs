@@ -34,7 +34,27 @@ pub fn sector(game_state: &mut GameState) {
     // Used below to drop any stellar object whose `sector_id` doesn't match —
     // see the wrong-sector filter in the first pass. `None` while docked /
     // out-of-play, in which case we don't filter (nothing to anchor to).
+    //
+    // Sector-transition smoothing: when the ship's `sector_id` changes (jumpgate
+    // transit), the subscription may deliver the Ship update before the new
+    // sector's StellarObject rows arrive. We keep the previous sector's objects
+    // visible for a grace window so the view doesn't flash-empty.
     let player_sector = player_ship.as_ref().map(|s| s.sector_id);
+    if player_sector.is_some() && player_sector != game_state.last_player_sector {
+        game_state.sector_transition_from = game_state.last_player_sector;
+        game_state.sector_transition_grace = 3;
+    }
+    game_state.last_player_sector = player_sector;
+    let transition_sector = if game_state.sector_transition_grace > 0 {
+        game_state.sector_transition_grace -= 1;
+        let ts = game_state.sector_transition_from;
+        if game_state.sector_transition_grace == 0 {
+            game_state.sector_transition_from = None;
+        }
+        ts
+    } else {
+        None
+    };
 
     // Draw sector-level nebula fog overlay — semi-transparent texture centered
     // on the camera's target, large enough to cover the full visible area.
@@ -45,16 +65,20 @@ pub fn sector(game_state: &mut GameState) {
         if let Some(sector) = db.sector().id().find(&sector_id) {
             if sector.nebula > 0.0 {
                 let resources = storage::get::<Resources>();
-                let key = match sector_id % 8 {
-                    0 => "nebula.1",
-                    1 => "nebula.2",
-                    2 => "nebula.3",
-                    3 => "nebula.5",
-                    4 => "nebula.6",
-                    5 => "nebula.7",
-                    6 => "nebula.9",
-                    _ => "nebula.10",
-                };
+                let key = sector
+                    .background_gfx_key
+                    .as_deref()
+                    .filter(|k| resources.nebula_textures.contains_key(*k))
+                    .unwrap_or(match sector_id % 8 {
+                        0 => "nebula.1",
+                        1 => "nebula.2",
+                        2 => "nebula.3",
+                        3 => "nebula.5",
+                        4 => "nebula.6",
+                        5 => "nebula.7",
+                        6 => "nebula.9",
+                        _ => "nebula.10",
+                    });
                 if let Some(texture) = resources.nebula_textures.get(key) {
                     let alpha = (160.0 * sector.nebula.min(1.0)) as u8;
                     let color = Color::from_rgba(200, 160, 255, alpha);
@@ -86,20 +110,18 @@ pub fn sector(game_state: &mut GameState) {
 
     // First pass: Draw everything except ships
     for object in db.stellar_object().iter() {
-        // (#89) Wrong-sector render filter (approach (b)). `try_to_use_jumpgate`
-        // flips Ship/ShipStatus/StellarObject.sector_id + the movement snapshot
-        // in one server transaction, but the rows can briefly land out of order
-        // on the client — and pre-#84 the cache holds other sectors' objects
-        // outright. Skipping any object not in the player's sector kills the
-        // cross-sector ghost/flicker for every kind, and during the transient
-        // it hides the player's own ship for at most a frame rather than drawing
-        // it at a stale position. Cosmetic only: server state is consistent.
-        // ponytail: StellarObject.sector_id is atomic with the row's pose, so
-        // this subsumes approach (a) — there is no client-side prediction
-        // buffer to separately invalidate.
+        // (#89) Wrong-sector render filter. During normal flight, only objects
+        // in the player's current sector are drawn. On jumpgate transit the
+        // Ship.sector_id update may arrive before the new sector's StellarObject
+        // rows; the `transition_sector` grace window keeps the previous sector's
+        // objects visible for ~3 frames to prevent a flash-empty view.
         if let Some(ps) = player_sector {
             if object.sector_id != ps {
-                continue;
+                let in_transition = transition_sector
+                    .map_or(false, |ts| object.sector_id == ts);
+                if !in_transition {
+                    continue;
+                }
             }
         }
         // Build a render pose for this object — predicts forward for ships

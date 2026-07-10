@@ -15,15 +15,17 @@ pub fn draw(egui_ctx: &Context, _ctx: &DbConnection, game_state: &mut GameState)
         .anchor(Align2::CENTER_TOP, egui::Vec2::new(0.0, 0.0))
         .show(egui_ctx, |ui| {
             ui.horizontal(|ui| {
-              toggable_label(ui, "[R] SHIP", &mut game_state.details_window_open);
+              toggable_label(ui, "[R] SHIP", &mut game_state.windows.details);
               ui.separator();
-              toggable_label(ui, "[F]ACTION", &mut game_state.faction_window_open);
+              toggable_label(ui, "[F]ACTION", &mut game_state.windows.faction);
               ui.separator();
-              toggable_label(ui, "ASSE[T]S", &mut game_state.assets_window_open);
+              toggable_label(ui, "ASSE[T]S", &mut game_state.windows.assets);
               ui.separator();
-              toggable_label(ui, "[M]AP", &mut game_state.map_window_open);
+              toggable_label(ui, "[M]AP", &mut game_state.windows.map);
               ui.separator();
-              toggable_label(ui, "[B]UILD", &mut game_state.construction_window_open);
+              toggable_label(ui, "[B]UILD", &mut game_state.windows.construction);
+              ui.separator();
+              toggable_label(ui, "SETTINGS", &mut game_state.windows.settings);
             });
         })
 }

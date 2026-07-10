@@ -15,7 +15,11 @@ use macroquad::{
     time,
 };
 
-use solarance_beginnings::{server::bindings::DbConnection, stdb::connector::connect_to_spacetime};
+use solarance_beginnings::{
+    server::bindings::{DbConnection, GlobalConfigTableAccess},
+    stdb::connector::connect_to_spacetime,
+};
+use spacetimedb_sdk::Table;
 use spacetimedb_sdk::DbContext;
 
 pub struct MenuAssets {
@@ -209,7 +213,7 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 if id_token.is_some()
                                     && ui
                                         .button(
-                                            RichText::new("\n    Play via Auth0    \n").size(24.0),
+                                            RichText::new("\n    Start Game (Auth0)    \n").size(24.0),
                                         )
                                         .clicked()
                                 {
@@ -236,13 +240,22 @@ pub async fn login_screen() -> (bool, Option<String>) {
                                 info!("CLICKED!");
                                 end_loop = BreakLoop;
                             }
-                            if has_prior_token
-                                && ui
+                            if has_prior_token {
+                                if let Some(ref token) = prior_token {
+                                    let hint = if token.len() > 8 {
+                                        format!("…{}", &token[token.len()-8..])
+                                    } else {
+                                        token.clone()
+                                    };
+                                    ui.label(RichText::new(format!("    {}    ", hint)).size(14.0).color(Color32::GRAY));
+                                }
+                                if ui
                                     .button(RichText::new("\n    Continue    \n").size(24.0))
                                     .clicked()
-                            {
-                                info!("CLICKED!");
-                                end_loop = UsePriorToken;
+                                {
+                                    info!("CLICKED!");
+                                    end_loop = UsePriorToken;
+                                }
                             }
                         });
                         if ui
@@ -406,10 +419,22 @@ pub async fn loading_screen(token: Option<String>) -> Option<DbConnection> {
                 sleep(Duration::from_secs(1));
             }
 
-            // TODO(#version-check): compare client ver against server's
-            // GlobalConfig.version once bindings are regenerated with the
-            // table marked public (server/src/tables/global_config.rs).
-            // Until then the subscription for it is a no-op.
+            // Version check: compare client version against server GlobalConfig.
+            let ctx = connection.as_ref().unwrap();
+            if let Some(config) = ctx.db().global_config().iter().next() {
+                let client_ver = env!("CARGO_PKG_VERSION");
+                let server_ver = &config.version;
+                if client_ver != server_ver {
+                    error!(
+                        "Version mismatch: client={}, server={}. Regenerate bindings and re-publish the server module.",
+                        client_ver, server_ver
+                    );
+                    return None;
+                }
+                info!("Version check passed: client={}, server={}", client_ver, server_ver);
+            } else {
+                warn!("No GlobalConfig row found — skipping version check");
+            }
         } else if resources_loading.is_none() {
             // Only after the connection is alive do we actually load the resources.
             resources_loading = Some(start_coroutine(async move {

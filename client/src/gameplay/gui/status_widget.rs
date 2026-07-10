@@ -236,6 +236,14 @@ fn add_targeted_object_status(
     match target.kind {
         StellarObjectKinds::Asteroid => {
             if let Some(asteroid) = ctx.db().asteroid().id().find(&target.id) {
+                let ore_name = ctx
+                    .db()
+                    .item_definition()
+                    .id()
+                    .find(&asteroid.resource_item_id)
+                    .map(|item| item.name.clone())
+                    .unwrap_or_else(|| format!("#{}", asteroid.resource_item_id));
+                ui.label(format!("Ore type: {}", ore_name));
                 add_status_bar(
                     ui,
                     "Resources",
@@ -305,6 +313,29 @@ fn add_targeted_object_status(
                         true,
                     );
                 }
+                let modules: Vec<_> = ctx
+                    .db()
+                    .station_module()
+                    .iter()
+                    .filter(|m| m.station_id == station.id)
+                    .collect();
+                if !modules.is_empty() {
+                    ui.separator();
+                    ui.label(format!("Modules: {}", modules.len()));
+                    for m in modules.iter().take(4) {
+                        let name = ctx
+                            .db()
+                            .station_module_blueprint()
+                            .id()
+                            .find(&m.blueprint)
+                            .map(|b| b.name.clone())
+                            .unwrap_or_else(|| "Unknown".to_string());
+                        ui.label(format!("  • {}", name));
+                    }
+                    if modules.len() > 4 {
+                        ui.label(format!("  ... +{} more", modules.len() - 4));
+                    }
+                }
             }
         }
         StellarObjectKinds::CargoCrate => {
@@ -315,7 +346,16 @@ fn add_targeted_object_status(
                         cargo_crate.quantity, item_def.name
                     ));
                 }
-                //add_status_bar(ui, "Health", crate_.max_health as f32, crate_.health, Color32::from_rgb(242, 0, 32));
+                if ui
+                    .button(RichText::new("Collect").color(Color32::LIGHT_GREEN))
+                    .clicked()
+                {
+                    let _ = ctx
+                        .reducers
+                        .try_to_pickup_crate(CargoCrateId {
+                            value: cargo_crate.id,
+                        });
+                }
             }
         }
         StellarObjectKinds::JumpGate => {

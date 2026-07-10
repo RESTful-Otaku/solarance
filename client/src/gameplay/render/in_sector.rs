@@ -174,14 +174,25 @@ pub fn draw_radar(
         } else {
             player_vec + (glam::Vec2::from_angle(angle) * ring_radius + radar_icon_size / 2.0)
         };
-        let label = format!("{:.0}", dist);
+        let label = if dist >= 1_000_000.0 {
+            format!("{:.1}M", dist / 1_000_000.0)
+        } else if dist >= 1_000.0 {
+            format!("{:.1}k", dist / 1_000.0)
+        } else {
+            format!("{:.0}", dist)
+        };
+        let (font_size, label_alpha) = if is_targetted {
+            (14, (actual_fade as f32) as u8)
+        } else {
+            (12, (actual_fade as f32 * 0.75) as u8)
+        };
         draw_text_ex(
             &label,
             label_pos.x + radar_icon_size + 4.0,
             label_pos.y - 4.0,
             TextParams {
-                font_size: 12,
-                color: Color::from_rgba(255, 255, 255, (actual_fade as f32 * 0.75) as u8),
+                font_size,
+                color: Color::from_rgba(255, 255, 255, label_alpha),
                 ..Default::default()
             },
         );

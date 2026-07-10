@@ -155,7 +155,8 @@ fn create_procyon_sectors(
                   nebula: f32,
                   rare_ore: f32,
                   x: f32,
-                  y: f32|
+                  y: f32,
+                  bg_key: Option<&str>|
      -> Result<Sector, String> {
         dsl.create_sector(CreateSector {
             id,
@@ -170,24 +171,25 @@ fn create_procyon_sectors(
             rare_ore,
             x,
             y,
-            background_gfx_key: None,
+            background_gfx_key: bg_key.map(|s| s.to_string()),
         })
         .map_err(|e| e.to_string())
     };
 
     // Pre-existing four (IDs kept; Tarol's Belt flipped Lrak -> neutral).
-    let tarols_belt = mk(0, "Tarol's Belt", neutral, 5, 0.9, 0.1, 0.1, 0.2, 4.0, -30.0)?;
-    let ore_trench = mk(1, "Ore Trench", lrak, 6, 0.8, 0.0, 0.1, 0.6, 75.0, -20.0)?;
-    let lrakhold = mk(2, "Lrakhold", lrak, 10, 0.9, 0.1, 0.1, 0.1, 126.0, 8.0)?;
-    let echo_bay = mk(3, "Echo Bay", rediar, 9, 0.9, 0.0, 0.1, 0.1, -120.0, 8.0)?;
+    // Each sector gets a distinct background_gfx_key for visual variety.
+    let tarols_belt = mk(0, "Tarol's Belt", neutral, 5, 0.9, 0.1, 0.1, 0.2, 4.0, -30.0, Some("nebula.1"))?;
+    let ore_trench = mk(1, "Ore Trench", lrak, 6, 0.8, 0.0, 0.1, 0.6, 75.0, -20.0, Some("nebula.3"))?;
+    let lrakhold = mk(2, "Lrakhold", lrak, 10, 0.9, 0.1, 0.1, 0.1, 126.0, 8.0, Some("nebula.5"))?;
+    let echo_bay = mk(3, "Echo Bay", rediar, 9, 0.9, 0.0, 0.1, 0.1, -120.0, 8.0, Some("nebula.6"))?;
 
     // Six new MVP sectors.
-    let the_hinge = mk(4, "The Hinge", neutral, 5, 0.4, 0.0, 0.6, 0.0, -4.0, 10.0)?;
-    let karrens_reach = mk(5, "Karren's Reach", lrak, 7, 0.7, 0.0, 0.1, 0.2, 100.0, 30.0)?;
-    let stilwater = mk(6, "Stilwater", rediar, 8, 0.6, 0.4, 0.3, 0.0, -70.0, 40.0)?;
-    let quiet_belt = mk(7, "Quiet Belt", neutral, 4, 0.5, 0.1, 0.2, 0.8, 40.0, -12.0)?;
-    let iron_furrow = mk(8, "Iron Furrow", rediar, 6, 0.8, 0.0, 0.0, 0.1, -48.0, 5.0)?;
-    let pale_crossing = mk(9, "Pale Crossing", rediar, 7, 0.6, 0.0, 0.4, 0.0, -85.0, -5.0)?;
+    let the_hinge = mk(4, "The Hinge", neutral, 5, 0.4, 0.0, 0.6, 0.0, -4.0, 10.0, Some("nebula.7"))?;
+    let karrens_reach = mk(5, "Karren's Reach", lrak, 7, 0.7, 0.0, 0.1, 0.2, 100.0, 30.0, Some("nebula.9"))?;
+    let stilwater = mk(6, "Stilwater", rediar, 8, 0.6, 0.4, 0.3, 0.0, -70.0, 40.0, Some("nebula.10"))?;
+    let quiet_belt = mk(7, "Quiet Belt", neutral, 4, 0.5, 0.1, 0.2, 0.8, 40.0, -12.0, Some("nebula.2"))?;
+    let iron_furrow = mk(8, "Iron Furrow", rediar, 6, 0.8, 0.0, 0.0, 0.1, -48.0, 5.0, None)?;
+    let pale_crossing = mk(9, "Pale Crossing", rediar, 7, 0.6, 0.0, 0.4, 0.0, -85.0, -5.0, Some("nebula.1"))?;
 
     Ok(ProcyonSectors {
         tarols_belt,
@@ -325,6 +327,14 @@ fn populate_sectors_with_asteroids(
         ]),
     )?; // carbon-bearing
 
+    // Decorative asteroid fields for sectors without mining — sparse default
+    // composition so they feel alive without being mining destinations.
+    field(&s.lrakhold, 1, 10, 2000.0, None, vec![])?;
+    field(&s.echo_bay, 1, 10, 2000.0, None, vec![])?;
+    field(&s.the_hinge, 1, 10, 2000.0, None, vec![])?;
+    field(&s.stilwater, 1, 10, 2000.0, None, vec![])?;
+    field(&s.pale_crossing, 1, 10, 2000.0, None, vec![])?;
+
     Ok(())
 }
 
@@ -410,6 +420,52 @@ fn create_sector_stations(
         "Ore Trench Exchange",
         None,
         Vec2::new(613.0, 1337.0),
+        0.0,
+        vec![create_trading_module()],
+    )?;
+
+    // --- Small sector outposts for coverage -------------------------------
+    // Stilwater: a Rediar listening post at the outer hub.
+    let _stilwater_watch = create_station_with_modules(
+        dsl,
+        StationSize::Outpost,
+        &s.stilwater,
+        &create_sobj(dsl, StellarObjectKinds::Station, &s.stilwater.get_id())?,
+        rediar.clone(),
+        "Stilwater Watch",
+        None,
+        Vec2::new(0.0, 0.0),
+        0.0,
+        vec![create_trading_module()],
+    )?;
+
+    // Quiet Belt: an IWA mining depot serving the belt's high-yield field.
+    let _quiet_belt_depot = create_station_with_modules(
+        dsl,
+        StationSize::Outpost,
+        &s.quiet_belt,
+        &create_sobj(dsl, StellarObjectKinds::Station, &s.quiet_belt.get_id())?,
+        neutral.clone(),
+        "Quiet Belt Mining Depot",
+        None,
+        Vec2::new(0.0, 0.0),
+        0.0,
+        vec![
+            create_iron_refinery_module(),
+            create_silicon_refinery_module(),
+        ],
+    )?;
+
+    // Pale Crossing: a Rediar customs checkpoint at the western spoke.
+    let _pale_crossing_depot = create_station_with_modules(
+        dsl,
+        StationSize::Outpost,
+        &s.pale_crossing,
+        &create_sobj(dsl, StellarObjectKinds::Station, &s.pale_crossing.get_id())?,
+        rediar.clone(),
+        "Pale Crossing Depot",
+        None,
+        Vec2::new(0.0, 0.0),
         0.0,
         vec![create_trading_module()],
     )?;

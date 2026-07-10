@@ -8,18 +8,22 @@ use crate::{server::bindings::*, stdb::utils::*};
 /// UI can grey the deposit buttons before the player tries.
 const CONTRIBUTE_RANGE_PX: f32 = 300.0;
 
-pub struct State {}
+pub struct State {
+    pub last_deposit_at: Option<std::time::Instant>,
+}
 
 impl State {
     pub fn new() -> Self {
-        State {}
+        State {
+            last_deposit_at: None,
+        }
     }
 }
 
 pub fn draw(
     egui_ctx: &Context,
     ctx: &DbConnection,
-    _state: &mut State,
+    state: &mut State,
     open: &mut bool,
 ) -> Option<egui::InnerResponse<Option<()>>> {
     egui::Window::new("Construction")
@@ -33,10 +37,11 @@ pub fn draw(
         .default_height(420.0)
         .show(egui_ctx, |ui| match nearest_construction_site(ctx) {
             None => {
+                state.last_deposit_at = None;
                 ui.label("No construction site in this sector.");
             }
             Some((station, under_construction)) => {
-                draw_site(ui, ctx, &station, &under_construction);
+                draw_site(ui, ctx, state, &station, &under_construction);
             }
         })
 }
@@ -74,6 +79,7 @@ fn nearest_construction_site(ctx: &DbConnection) -> Option<(Station, StationUnde
 fn draw_site(
     ui: &mut egui::Ui,
     ctx: &DbConnection,
+    state: &mut State,
     station: &Station,
     under_construction: &StationUnderConstruction,
 ) {
@@ -115,11 +121,23 @@ fn draw_site(
     }
 
     let pct = under_construction.construction_progress_percentage.clamp(0.0, 100.0);
-    ui.add(
-        ProgressBar::new(pct / 100.0)
-            .text(format!("{:.1}%", pct))
-            .desired_width(ui.available_width()),
-    );
+
+    let flash_active = state
+        .last_deposit_at
+        .is_some_and(|t| t.elapsed() < std::time::Duration::from_secs(2));
+
+    let mut bar = ProgressBar::new(pct / 100.0)
+        .text(format!("{:.1}%", pct))
+        .desired_width(ui.available_width());
+    if flash_active {
+        bar = bar.fill(Color32::from_rgb(80, 200, 80));
+    }
+    ui.add(bar);
+
+    if flash_active {
+        ui.label(RichText::new("✓ Deposited!").color(Color32::from_rgb(80, 220, 80)));
+        ui.add_space(4.0);
+    }
 
     ui.add_space(8.0);
     ui.heading("Required Resources");
@@ -208,7 +226,7 @@ fn draw_site(
         shown_any = true;
         ui.horizontal(|ui| {
             ui.label(format!("{}x {}", cargo.quantity, item_def.name));
-            deposit_buttons(ui, ctx, station.id, cargo.item_id, cargo.quantity, in_range);
+            deposit_buttons(ui, ctx, state, station.id, cargo.item_id, cargo.quantity, in_range);
         });
     }
 
@@ -220,6 +238,7 @@ fn draw_site(
 fn deposit_buttons(
     ui: &mut egui::Ui,
     ctx: &DbConnection,
+    state: &mut State,
     station_id: u64,
     item_id: u32,
     cargo_qty: u16,
@@ -228,26 +247,27 @@ fn deposit_buttons(
     let station_id = StationId { value: station_id };
     let item_id = ItemDefinitionId { value: item_id };
 
-    let deposit = |qty: u32| {
+    let deposit = |state: &mut State, qty: u32| {
+        state.last_deposit_at = Some(std::time::Instant::now());
         let _ = ctx
             .reducers
             .contribute_to_station(station_id.clone(), item_id.clone(), qty);
     };
 
     if ui.add_enabled(enabled, egui::Button::new("+1")).clicked() {
-        deposit(1);
+        deposit(state, 1);
     }
     if cargo_qty >= 10
         && ui.add_enabled(enabled, egui::Button::new("+10")).clicked()
     {
-        deposit(10);
+        deposit(state, 10);
     }
     if cargo_qty >= 100
         && ui.add_enabled(enabled, egui::Button::new("+100")).clicked()
     {
-        deposit(100);
+        deposit(state, 100);
     }
     if ui.add_enabled(enabled, egui::Button::new("All")).clicked() {
-        deposit(cargo_qty as u32);
+        deposit(state, cargo_qty as u32);
     }
 }

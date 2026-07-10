@@ -7,6 +7,7 @@ pub mod debug_widget;
 pub mod faction_window;
 pub mod map_window;
 pub mod menu_bar_widget;
+pub mod settings_window;
 pub mod minimap_widget;
 pub mod out_of_play_screen;
 pub mod ship_details_window;

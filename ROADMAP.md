@@ -9,32 +9,22 @@
 | Phase | Status |
 |-------|--------|
 | M0 — Movement Critical-Path Fix | ✅ Complete |
-| M4 — Multi-Sector World Buildout | 🟡 Partial (sectors + gates + nebula art done) |
-| M1 — Shared-Building Spike | ❌ Not started |
-| M2 — Persistence + Welcome-Back | ❌ Not started |
-| M3 — Two-Faction MVP Setup | ❌ Not started |
-| M5 — Mining Loop + Polish | ❌ Not started |
+| M1 — Shared-Building Spike | ✅ Complete |
+| M2 — Persistence + Welcome-Back | ✅ Complete |
+| M3 — Two-Faction MVP Setup | ✅ Complete |
+| M4 — Multi-Sector World Buildout | ✅ Complete |
+| M5 — Mining Loop + Polish | 🟡 Partial (core loop + VFX + contribution flash done; sound cues pending) |
 | M6 — MVP Launch & Devlog | ❌ Not started |
 | M7 — Anti-Cheat Hardening via Views | ❌ Not started |
 
 ---
 
-## Near-Term Focus (Current Branch: `feat/nebula-and-uc-station-art`)
+## Near-Term Focus (Current Branch: `main` — stable)
 
-1. **Wire nebula rendering** into sector background — ✅ done
-2. **Wire UC station textures** into station dispatch — ✅ done
-3. **Build and smoke test** — pending user QA sign-off
-4. **Merge to main** — after user confirms gameplay is functional
-
----
-
-## Next After Confirmation
-
-1. `feat/mining-visual-effects` — add client-side laser beam and asteroid hit VFX (M5)
-2. `feat/galaxy-map-tab` — galaxy overview in map window (M4 polish)
-3. `feat/station-shields` — shield system in station status tick (M5)
-4. Farm/laboratory module production implementations (M1 infrastructure)
-5. M1 Shared-Building Spike proper: `contribute_to_station` reducer, construction-site UI, completion broadcast
+1. **M5 polish** — sound cues spike, completion animations
+2. **Bug fixes** — #179 (modules on construction completion ✅), #176 (ore type in targeting ✅), login screen polish, cargo pickup UI
+3. **QA smoke test** — verify core loop (spawn → fly → mine → contribute) end-to-end
+4. **Monthly devlog** — M6 tracking (landing page, video, blog)
 
 ---
 

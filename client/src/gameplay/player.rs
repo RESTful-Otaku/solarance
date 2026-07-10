@@ -17,6 +17,21 @@ pub fn control_player_ship(ctx: &DbConnection, game_state: &mut GameState) -> Re
         game_state.combat_mode = !game_state.combat_mode;
     }
 
+    // Mining beam toggle (utility mode only, requires asteroid target)
+    if is_key_pressed(KeyCode::X) && !game_state.combat_mode {
+        let target = get_current_target(ctx, &mut game_state.current_target_sobj_id);
+        let is_asteroid = target.as_ref().is_some_and(|t| t.kind == StellarObjectKinds::Asteroid);
+        if is_asteroid {
+            if game_state.mining_active {
+                let _ = ctx.reducers.stop_mining_asteroid();
+                game_state.mining_active = false;
+            } else if let Some(t) = target {
+                let _ = ctx.reducers.try_mining_asteroid(StellarObjectId { value: t.id });
+                game_state.mining_active = true;
+            }
+        }
+    }
+
     let forward  = is_key_down(KeyCode::W) || is_key_down(KeyCode::Up);
     let backward = is_key_down(KeyCode::S) || is_key_down(KeyCode::Down);
     let left     = is_key_down(KeyCode::A) || is_key_down(KeyCode::Left);

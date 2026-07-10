@@ -35,3 +35,6 @@ client-admin/src/server/bindings/
 .DS_Store
 
 .claude/
+
+# opencode-guide — AI assistant guide (separate repo, local-only customizations)
+opencode-guide/

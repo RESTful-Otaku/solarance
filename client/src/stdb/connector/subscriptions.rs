@@ -53,11 +53,11 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
     // This is a superset of the old current-sector filter, so in-sector gate
     // rendering / `use_jumpgate` still work.
     let ship = format!(
-        "SELECT * from ship" // "SELECT o.*
-                             // FROM ship o
-                             // JOIN ship s ON s.sector_id = o.sector_id
-                             // WHERE s.player_id = '{}'",
-                             //ctx.identity()
+        "SELECT o.*
+        FROM ship o
+        JOIN ship s ON s.sector_id = o.sector_id
+        WHERE s.player_id = '{}'",
+        ctx.identity()
     );
     let asteroid = format!(
         "SELECT a.* 
@@ -106,6 +106,7 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM my_direct_server_messages",
             "SELECT * FROM faction",
             "SELECT * FROM faction_standing",
+            "SELECT * FROM global_config",
             "SELECT * FROM item_definition",
             cargo_crate.as_str(),
             "SELECT * FROM jump_gate",
@@ -132,8 +133,8 @@ pub(super) fn subscribe_to_tables(ctx: &DbConnection) {
             "SELECT * FROM refinery_module",
             "SELECT * FROM solar_array_module",
             // "SELECT * FROM synthesizer_module",
-            // "SELECT * FROM production_recipe_definition",
-            // "SELECT * FROM manufacturing_module",
+            "SELECT * FROM production_recipe_definition",
+            "SELECT * FROM manufacturing_module",
             // "SELECT * FROM laboratory_module",
             // "SELECT * FROM capital_dock_module",
             // "SELECT * FROM docked_capital_ship_at_module",

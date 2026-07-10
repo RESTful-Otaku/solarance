@@ -3,7 +3,14 @@ use spacetimedsl::*;
 
 use crate::{
     logic::ships::cargo::remove_cargo_from_ship,
-    logic::stations::create_station_with_modules,
+    logic::stations::{
+        create_ice_refinery_module,
+        create_iron_refinery_module,
+        create_silicon_refinery_module,
+        create_station_with_modules,
+        create_trading_module,
+        ModuleCreationFn,
+    },
     logic::stellarobjects::movement::get_ship_movement_snapshot,
     tables::{
         economy::ResourceAmount,
@@ -106,11 +113,44 @@ fn collect_requirements<T: spacetimedsl::WriteContext>(
         .collect()
 }
 
+/// Select a set of `ModuleCreationFn`s for a station that has just completed
+/// construction, based on keywords in its name. Every station must end up with
+/// at least one module so it's never empty / non-functional.
+///
+/// Matching rules (first match wins):
+/// - "refinery" → all three basic refineries (iron, ice, silicon)
+/// - "bazaar", "exchange", "port", "depot", "bazar" → basic trading module
+/// - "watch", "outpost" → trading module (minimal presence)
+/// - fallback → trading module (never empty)
+fn modules_for_station_name<T: spacetimedsl::WriteContext + 'static>(
+    name: &str,
+) -> Vec<ModuleCreationFn<T>> {
+    let lower = name.to_lowercase();
+    if lower.contains("refinery") {
+        vec![
+            create_iron_refinery_module(),
+            create_ice_refinery_module(),
+            create_silicon_refinery_module(),
+        ]
+    } else if lower.contains("bazaar")
+        || lower.contains("exchange")
+        || lower.contains("port")
+        || lower.contains("depot")
+        || lower.contains("bazar")
+    {
+        vec![create_trading_module()]
+    } else if lower.contains("watch") || lower.contains("outpost") {
+        vec![create_trading_module()]
+    } else {
+        vec![create_trading_module()]
+    }
+}
+
 /// Recompute progress for a single station from current table state and
 /// persist the new percentage. If progress hits 100% and the site was not
 /// already flagged operational, flip the bit and broadcast a system
 /// completion message to every logged-in player.
-fn refresh_station_progress<T: spacetimedsl::WriteContext>(
+fn refresh_station_progress<T: spacetimedsl::WriteContext + 'static>(
     dsl: &DSL<T>,
     station_id: &StationId,
 ) -> Result<f32, String> {
@@ -131,6 +171,20 @@ fn refresh_station_progress<T: spacetimedsl::WriteContext>(
 
     if now_complete {
         let station = dsl.get_station_by_id(station_id)?;
+
+        // Grant modules appropriate to the station's purpose so a
+        // finished construction site is never empty / non-functional.
+        // Keywords in the station name determine which modules to add;
+        // unknown names fall back to a basic trading module.
+        let modules = modules_for_station_name(station.get_name());
+        for creator in modules {
+            creator(dsl, &station)?;
+        }
+
+        // Re-verify after adding modules (reducer is transactional so a
+        // violation rolls back the whole completion).
+        crate::logic::stations::verify(dsl, &station)?;
+
         // Construction completion is a genuinely async, everyone-relevant event:
         // post it to the Galaxy channel as System. Replaces the old per-player
         // fan-out via `send_server_message_to_group`.

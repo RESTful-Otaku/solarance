@@ -570,7 +570,7 @@ fn left_panel(ui: &mut Ui, ctx: &DbConnection, game_state: &mut GameState) {
                 game_state.done = true;
             }
             if ui.button("Settings").clicked() {
-                //
+                game_state.windows.settings = true;
             }
         });
         ui.separator();

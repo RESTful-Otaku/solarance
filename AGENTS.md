@@ -124,10 +124,11 @@ spacetime logs <name>
 | Issue | Status | Workaround |
 |-------|--------|------------|
 | `ship_status_timer_reducer` identity mismatch in logs | Pre-existing, not blocking | Timer identity != server identity; cosmetic error |
-| Client version-check TODO (`login.rs:409`) | Blocked on making `global_config` public | Cannot check version without public table |
 | `docs/Solarance_Beginnings_MVP_Design_Doc.md` doesn't exist | Missing file | Referenced in roadmap but not on disk |
 | Guest login (`DATABASE_HOST=localhost`) | Fixed | Must include `http://` scheme + `:3000` port |
 | Combat system | Gated behind `combat_enabled` flag (default false) | `fire_weapons` returns "Combat disabled" |
+| Cross-sector flicker (#89) | Fixed | Grace-window smoothing in render.rs |
+| Client version-check | Fixed | `global_config` public, checked in login.rs |
 
 ---
 
@@ -153,10 +154,10 @@ spacetime logs <name>
 |-----------|------------|--------|
 | M0 | Movement Critical-Path Fix | Complete |
 | M1 | Shared-Building Spike | Not started |
-| M2 | Single-Player Persistence + Welcome-Back | Not started |
-| M3 | Two-Faction MVP Setup | Not started |
-| M4 | Multi-Sector World Buildout | Partial (sectors seeded, gates wired, nebula art in) |
-| M5 | Mining Loop + Polish | Not started |
+| M2 | Single-Player Persistence + Welcome-Back | Complete |
+| M3 | Two-Faction MVP Setup | Complete |
+| M4 | Multi-Sector World Buildout | Complete |
+| M5 | Mining Loop + Polish | Partial (core loop + VFX done, polish outstanding) |
 | M6 | MVP Launch & Devlog | Not started |
 | M7 | Anti-Cheat Hardening via Views | Not started |
 

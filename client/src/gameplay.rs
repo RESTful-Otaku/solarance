@@ -107,6 +107,15 @@ pub async fn gameplay(connection: Option<DbConnection>) {
         visual_effects::render_visual_effects(&game_state);
 
         egui_macroquad::ui(|egui_ctx| {
+            // Welcome-back panel (#100): must draw *before* the early return
+            // for out-of-play / creation screen, because docked players never
+            // reach the call below.  Self-suppresses after dismissal.
+            gui::welcome_back_widget::draw(
+                egui_ctx,
+                &game_state.ctx,
+                &mut game_state.welcome_back,
+            );
+
             if player_ship.is_none() {
                 if ctx
                     .db()
@@ -135,43 +144,40 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                     egui_ctx,
                     &game_state.ctx,
                     &mut game_state.assets_window,
-                    &mut game_state.assets_window_open,
+                    &mut game_state.windows.assets,
                 );
                 gui::ship_details_window::draw(
                     egui_ctx,
                     &game_state.ctx,
                     &mut game_state.details_window,
-                    &mut game_state.details_window_open,
+                    &mut game_state.windows.details,
                 );
                 gui::faction_window::draw(
                     egui_ctx,
                     &game_state.ctx,
                     &mut game_state.faction_window,
-                    &mut game_state.faction_window_open,
+                    &mut game_state.windows.faction,
                 );
                 gui::map_window::draw(
                     egui_ctx,
                     &ctx,
                     &mut game_state.map_window,
-                    &mut game_state.map_window_open,
+                    &mut game_state.windows.map,
                 );
                 gui::construction_window::draw(
                     egui_ctx,
                     &ctx,
                     &mut game_state.construction_window,
-                    &mut game_state.construction_window_open,
+                    &mut game_state.windows.construction,
+                );
+                gui::settings_window::draw(
+                    egui_ctx,
+                    &ctx,
+                    &mut game_state.settings_window,
+                    &mut game_state.windows.settings,
                 );
             }
 
-            // Welcome-back panel (#100): shows once on connect regardless of
-            // whether the player is piloting, docked, or still on the creation
-            // screen. Self-suppresses after dismissal.
-            // Renders last so it's always on top!
-            gui::welcome_back_widget::draw(
-                egui_ctx,
-                &game_state.ctx,
-                &mut game_state.welcome_back,
-            );
         });
 
         egui_macroquad::draw();
@@ -192,19 +198,19 @@ pub async fn gameplay(connection: Option<DbConnection>) {
                 }
             }
             if is_key_pressed(KeyCode::R) {
-                game_state.details_window_open = !game_state.details_window_open;
+                game_state.windows.details = !game_state.windows.details;
             }
             if is_key_pressed(KeyCode::F) {
-                game_state.faction_window_open = !game_state.faction_window_open;
+                game_state.windows.faction = !game_state.windows.faction;
             }
             if is_key_pressed(KeyCode::T) {
-                game_state.assets_window_open = !game_state.assets_window_open;
+                game_state.windows.assets = !game_state.windows.assets;
             }
             if is_key_pressed(KeyCode::M) {
-                game_state.map_window_open = !game_state.map_window_open;
+                game_state.windows.map = !game_state.windows.map;
             }
             if is_key_pressed(KeyCode::B) {
-                game_state.construction_window_open = !game_state.construction_window_open;
+                game_state.windows.construction = !game_state.windows.construction;
             }
         }
 
