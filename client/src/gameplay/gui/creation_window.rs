@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use egui::{Align2, Color32, Context, RichText};
-use spacetimedb_sdk::{DbContext, Table};
+use spacetimedb_sdk::Table;
 
 use crate::{gameplay::state::GameState, server::bindings::*, stdb::utils::*};
 
@@ -105,7 +105,7 @@ fn create_ship(
     {
         match ctx
             .reducers
-            .create_player_controlled_ship(ctx.identity(), game_state.chat_window.text.clone())
+            .create_player_controlled_ship()
         {
             Ok(_) => {
                 *game_state.creation_window.error.lock().unwrap() = None;
@@ -204,7 +204,6 @@ fn create_player(ctx: &DbConnection, game_state: &mut GameState<'_>, ui: &mut eg
                 // handle to the same slot the draw loop reads from.
                 let error_slot = game_state.creation_window.error.clone();
                 if let Err(e) = ctx.reducers.register_playername_then(
-                    ctx.identity(),
                     game_state.creation_window.text.clone(),
                     faction_id,
                     // Callback signature is:

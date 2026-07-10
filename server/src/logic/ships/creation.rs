@@ -1,6 +1,6 @@
 use log::info;
 use solarance_shared::Vec2;
-use spacetimedb::{Identity, ReducerContext};
+use spacetimedb::ReducerContext;
 use spacetimedsl::*;
 
 use crate::{
@@ -76,13 +76,15 @@ fn capital_spawn_for_faction(
 
 /// Creates a new ship for a registered player with starting equipment and cargo.
 /// Sets up the ship's stellar object, controller, and initial inventory.
+///
+/// The player identity is `ctx.sender()` — the authenticated caller. The
+/// reducer does NOT accept an `identity` parameter: a client must not be able
+/// to create a ship for an arbitrary identity. The username for the galaxy
+/// chat announcement is read from the player's own `Player` row.
 #[spacetimedb::reducer]
-pub fn create_player_controlled_ship(
-    ctx: &ReducerContext,
-    identity: Identity,
-    username: String, // TODO ReMOVE
-) -> Result<(), String> {
+pub fn create_player_controlled_ship(ctx: &ReducerContext) -> Result<(), String> {
     let dsl = dsl(ctx);
+    let identity = ctx.sender();
     let player_id = PlayerId::new(identity);
     let player = match dsl.get_player_by_id(&player_id) {
         Ok(p) => p,
@@ -105,7 +107,7 @@ pub fn create_player_controlled_ship(
     if dsl.get_ships_by_player_id(&player_id).next().is_some() {
         return Err(format!(
             "Player {} already owns a ship — one Column per player in MVP (#103); rejecting create_player_controlled_ship",
-            username
+            player.get_username()
         ));
     }
 
@@ -160,7 +162,7 @@ pub fn create_player_controlled_ship(
         })?;
 
         info!("Successfully created ship!");
-        send_galaxy_chat(dsl.ctx(), format!("{} has created a ship!", username))?;
+        send_galaxy_chat(dsl.ctx(), format!("{} has created a ship!", player.get_username()))?;
         Ok(())
     } else {
         let error_message =

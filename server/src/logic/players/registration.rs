@@ -1,4 +1,4 @@
-use spacetimedb::{Identity, ReducerContext, log};
+use spacetimedb::{log, ReducerContext};
 use spacetimedsl::*;
 
 use crate::definitions::factions::FACTION_FACTIONLESS;
@@ -16,14 +16,19 @@ use crate::tables::players::{CreatePlayer, PlayerId};
 
 /// Registers a new player with a unique username and creates their player account.
 /// Validates username uniqueness and initializes the player with starting credits.
+///
+/// The player identity is `ctx.sender()` — the authenticated caller. The
+/// reducer does NOT accept an `identity` parameter: a client must not be able
+/// to register a `Player` row for an arbitrary identity (impersonation /
+/// pre-claiming).
 #[spacetimedb::reducer]
 pub fn register_playername(
     ctx: &ReducerContext,
-    identity: Identity,
     username: String,
     faction_id: u32,
 ) -> Result<(), String> {
     let dsl = dsl(ctx);
+    let identity = ctx.sender();
 
     if dsl.get_player_by_id(PlayerId::new(identity)).is_ok() {
         log::error!("Player Already Registered");
