@@ -15,6 +15,12 @@ pub struct StationStatusSchedule {
 #[spacetimedb::reducer]
 pub fn station_status_schedule_reducer(ctx: &ReducerContext, timer: StationStatusSchedule) {
     let dsl = dsl(ctx);
+    // Defense-in-depth: scheduled reducers are private in ST 2.x, but
+    // enforce the system-only allowlist anyway.
+    if let Err(e) = crate::utility::try_server_only(&dsl) {
+        spacetimedb::log::error!("Denied station_status_schedule_reducer: {e}");
+        return;
+    }
     if let Err(e) = process_station_status_tick(&dsl, timer.get_id()) {
         spacetimedb::log::error!("Station status tick failed for station {}: {}", timer.get_id(), e);
     }

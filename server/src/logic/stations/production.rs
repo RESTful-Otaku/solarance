@@ -16,6 +16,13 @@ pub struct StationProductionSchedule {
 #[spacetimedb::reducer]
 pub fn station_production_schedule_reducer(ctx: &ReducerContext, timer: StationProductionSchedule) {
     let dsl = dsl(ctx);
+    // Defense-in-depth: scheduled reducers are private in ST 2.x, but
+    // enforce the system-only allowlist anyway so the reducer cannot be
+    // driven by a client-callable path.
+    if let Err(e) = crate::utility::try_server_only(&dsl) {
+        spacetimedb::log::error!("Denied station_production_schedule_reducer: {e}");
+        return;
+    }
     if let Err(e) = process_station_production_tick(&dsl, timer.get_id()) {
         spacetimedb::log::error!("Station production tick failed for station {}: {}", timer.get_id(), e);
     }

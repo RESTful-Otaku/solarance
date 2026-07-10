@@ -30,6 +30,10 @@ pub struct VisualEffectTimer {
 #[spacetimedb::reducer]
 pub fn cleanup_visual_effect(ctx: &ReducerContext, timer: VisualEffectTimer) -> Result<(), String> {
     let dsl = dsl(ctx);
+    // Defense-in-depth: scheduled reducers are private in ST 2.x, but
+    // enforce the system-only allowlist so a client-callable path can't
+    // delete arbitrary visual effects.
+    crate::utility::try_server_only(&dsl)?;
 
     // Delete the visual effect from the database
     let effect_id = VisualEffectId::new(timer.get_effect_id().value());
